@@ -1,8 +1,7 @@
 ﻿using EventHook;
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Collections.Specialized;
+using System.ComponentModel;
 using System.Data;
 using System.Linq;
 using System.Windows.Forms;
@@ -11,7 +10,8 @@ namespace ClipIt
 {
     public partial class MainForm : Form
     {
-        private ObservableCollection<KeyValuePair<Guid, string>> Clips = new ObservableCollection<KeyValuePair<Guid,string>>();
+        private BindingList<KeyValuePair<Guid, string>> Clips = new BindingList<KeyValuePair<Guid, string>>();
+        private const int MenuTextLength = 50;
         
         public MainForm()
         {
@@ -22,10 +22,59 @@ namespace ClipIt
         {
             ClipboardWatcher.OnClipboardModified += ClipboardWatcher_OnClipboardModified;
             ClipboardWatcher.Start();
+
             ctxMenuStripNotify.ItemClicked += CtxMenuStripNotify_ItemClicked;
-            Clips.CollectionChanged += Clips_CollectionChanged;
+            Clips.ListChanged += Clips_ListChanged;
+
+            dlvClips.DataSource = Clips;
+            dlvClips.AutoResizeColumns(ColumnHeaderAutoResizeStyle.HeaderSize);
         }
 
+        private void Clips_ListChanged(object sender, ListChangedEventArgs e)
+        {
+            switch (e.ListChangedType)
+            {
+                case ListChangedType.Reset:
+                    break;
+                case ListChangedType.ItemAdded:
+                    Invoke((Action)(() => {
+                        var item = Clips[e.NewIndex];
+
+                        // limit the size of the menu item
+                        string formattedText = item.Value.Replace(Environment.NewLine, " ");
+                        if (formattedText.Length > MenuTextLength)
+                            formattedText = $"{formattedText.Substring(0, MenuTextLength)}...";
+
+                        ctxMenuStripNotify.Items.Add(new ToolStripMenuItem(formattedText) { Tag = item.Key });
+                    }));
+                    break;
+                case ListChangedType.ItemDeleted:
+                    Invoke((Action)(() => {
+                        var item = Clips[e.OldIndex];
+
+                        // remove the menu item by guid
+                        var menu = ctxMenuStripNotify.Items.OfType<ToolStripMenuItem>()
+                                    .Where(i => i.Tag != null && (Guid)i.Tag == item.Key)
+                                    .FirstOrDefault();
+
+                        ctxMenuStripNotify.Items.Remove(menu);
+                    }));
+                    break;
+                case ListChangedType.ItemMoved:
+                    break;
+                case ListChangedType.ItemChanged:
+                    break;
+                case ListChangedType.PropertyDescriptorAdded:
+                    break;
+                case ListChangedType.PropertyDescriptorDeleted:
+                    break;
+                case ListChangedType.PropertyDescriptorChanged:
+                    break;
+                default:
+                    break;
+            }
+        }
+        
         private void MainForm_Resize(object sender, EventArgs e)
         {
             if (WindowState == FormWindowState.Minimized)
@@ -38,46 +87,7 @@ namespace ClipIt
         {
             ClipboardWatcher.Stop();
         }
-
-        private void Clips_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
-        {
-            switch (e.Action)
-            {
-                case NotifyCollectionChangedAction.Add:
-                    Invoke((Action)(() => {
-                        var item = (KeyValuePair<Guid, string>)e.NewItems[0];
-
-                        // limit the size of the menu item
-                        string formattedText = item.Value.Replace(Environment.NewLine, " ");
-                        if (formattedText.Length > 20)
-                            formattedText = $"{formattedText.Substring(0, 20)}...";
-                        
-                        ctxMenuStripNotify.Items.Add(new ToolStripMenuItem(formattedText) { Tag = item.Key });
-                    }));
-                    break;
-                case NotifyCollectionChangedAction.Remove:
-                    Invoke((Action)(() => {
-                        var item = (KeyValuePair<Guid, string>)e.OldItems[0];
-                        
-                        // remove the menu item by guid
-                        var menu = ctxMenuStripNotify.Items.OfType<ToolStripMenuItem>()
-                                    .Where(i => i.Tag != null && (Guid)i.Tag == item.Key)
-                                    .FirstOrDefault();
-
-                        ctxMenuStripNotify.Items.Remove(menu); 
-                    }));
-                    break;
-                case NotifyCollectionChangedAction.Replace:
-                    break;
-                case NotifyCollectionChangedAction.Move:
-                    break;
-                case NotifyCollectionChangedAction.Reset:
-                    break;
-                default:
-                    break;
-            }
-        }
-
+        
         private void CtxMenuStripNotify_ItemClicked(object sender, ToolStripItemClickedEventArgs e)
         {
             if (e.ClickedItem != quitToolStripMenuItem)
@@ -97,7 +107,10 @@ namespace ClipIt
 
         private void ClipboardWatcher_OnClipboardModified(object sender, ClipboardEventArgs e)
         {
-            Clips.Add(new KeyValuePair<Guid, string>(Guid.NewGuid(), (string)e.Data));
+            Invoke((Action)(() =>
+            {
+                Clips.Add(new KeyValuePair<Guid, string>(Guid.NewGuid(), (string)e.Data));
+            }));
         }
         
         private void quitToolStripMenuItem_Click(object sender, EventArgs e)
@@ -108,6 +121,7 @@ namespace ClipIt
         private void notifyIcon_MouseDoubleClick(object sender, System.Windows.Forms.MouseEventArgs e)
         {
             Show();
+            WindowState = FormWindowState.Normal;
             ShowInTaskbar = true;
         }
     }
