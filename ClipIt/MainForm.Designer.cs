@@ -57,19 +57,19 @@
             this.quitToolStripMenuItem,
             this.toolStripSeparator1});
             this.ctxMenuStripNotify.Name = "ctxMenuStripNotify";
-            this.ctxMenuStripNotify.Size = new System.Drawing.Size(191, 56);
+            this.ctxMenuStripNotify.Size = new System.Drawing.Size(154, 56);
             // 
             // quitToolStripMenuItem
             // 
             this.quitToolStripMenuItem.Name = "quitToolStripMenuItem";
-            this.quitToolStripMenuItem.Size = new System.Drawing.Size(327, 46);
+            this.quitToolStripMenuItem.Size = new System.Drawing.Size(153, 46);
             this.quitToolStripMenuItem.Text = "Quit";
             this.quitToolStripMenuItem.Click += new System.EventHandler(this.quitToolStripMenuItem_Click);
             // 
             // toolStripSeparator1
             // 
             this.toolStripSeparator1.Name = "toolStripSeparator1";
-            this.toolStripSeparator1.Size = new System.Drawing.Size(324, 6);
+            this.toolStripSeparator1.Size = new System.Drawing.Size(150, 6);
             // 
             // dlvClips
             // 
