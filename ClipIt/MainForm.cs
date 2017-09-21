@@ -10,7 +10,7 @@ namespace ClipIt
 {
     public partial class MainForm : Form
     {
-        private BindingList<KeyValuePair<Guid, string>> Clips = new BindingList<KeyValuePair<Guid, string>>();
+        private BindingListWithRemoving<KeyValuePair<Guid, string>> Clips = new BindingListWithRemoving<KeyValuePair<Guid, string>>();
         private const int MenuTextLength = 50;
         
         public MainForm()
@@ -25,17 +25,30 @@ namespace ClipIt
 
             ctxMenuStripNotify.ItemClicked += CtxMenuStripNotify_ItemClicked;
             Clips.ListChanged += Clips_ListChanged;
+            Clips.BeforeRemove += Clips_BeforeRemove;
 
             dlvClips.DataSource = Clips;
             dlvClips.AutoResizeColumns(ColumnHeaderAutoResizeStyle.HeaderSize);
+        }
+
+        private void Clips_BeforeRemove(object sender, ListChangedEventArgs e)
+        {
+            Invoke((Action)(() => {
+                var item = Clips[e.OldIndex];
+
+                // remove the menu item by guid
+                var menu = ctxMenuStripNotify.Items.OfType<ToolStripMenuItem>()
+                            .Where(i => i.Tag != null && (Guid)i.Tag == item.Key)
+                            .FirstOrDefault();
+
+                ctxMenuStripNotify.Items.Remove(menu);
+            }));
         }
 
         private void Clips_ListChanged(object sender, ListChangedEventArgs e)
         {
             switch (e.ListChangedType)
             {
-                case ListChangedType.Reset:
-                    break;
                 case ListChangedType.ItemAdded:
                     Invoke((Action)(() => {
                         var item = Clips[e.NewIndex];
@@ -47,30 +60,6 @@ namespace ClipIt
 
                         ctxMenuStripNotify.Items.Add(new ToolStripMenuItem(formattedText) { Tag = item.Key });
                     }));
-                    break;
-                case ListChangedType.ItemDeleted:
-                    Invoke((Action)(() => {
-                        var item = Clips[e.OldIndex];
-
-                        // remove the menu item by guid
-                        var menu = ctxMenuStripNotify.Items.OfType<ToolStripMenuItem>()
-                                    .Where(i => i.Tag != null && (Guid)i.Tag == item.Key)
-                                    .FirstOrDefault();
-
-                        ctxMenuStripNotify.Items.Remove(menu);
-                    }));
-                    break;
-                case ListChangedType.ItemMoved:
-                    break;
-                case ListChangedType.ItemChanged:
-                    break;
-                case ListChangedType.PropertyDescriptorAdded:
-                    break;
-                case ListChangedType.PropertyDescriptorDeleted:
-                    break;
-                case ListChangedType.PropertyDescriptorChanged:
-                    break;
-                default:
                     break;
             }
         }
